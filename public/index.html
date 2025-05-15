@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Among Us IRL</title>
+
+  <link rel="stylesheet" href="/src/css/style.css" />
+</head>
+<body>
+
+  <!-- Zahnrad -->
+  <div class="settings-icon" id="settingsIcon">
+    ⚙️
+  </div>
+
+  <!-- Admin Login: Anfangs versteckt -->
+  <div id="adminArea" class="admin-login hidden">
+    <input type="password" id="adminCode" placeholder="Admin-Code" />
+    <button id="adminBtn">Login</button>
+  </div>
+
+  <main>
+    <h1>Among US IRL</h1>
+
+    <div class="input-wrapper">
+      <input type="text" id="codeInput" placeholder="Enter code..." />
+      <button id="submitBtn">➜</button>
+    </div>
+
+    <div id="errorMsg"></div>
+  </main>
+
+  <script src="/src/js/main.js"></script>
+</body>
+</html>
