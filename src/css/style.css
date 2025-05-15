@@ -1,8 +1,16 @@
 body {
-  background-color: #fdf6e3;
-  font-family: 'Comic Sans MS', cursive, sans-serif;
+  background: linear-gradient(135deg, #2c2c2c, #1a1a1a);
+  font-family: sans-serif;
   margin: 0;
   padding: 0;
+  height: 100vh;
+  color: #f0f0f0; /* Optional: heller Text für guten Kontrast */
+}
+
+@keyframes bgFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 main {
@@ -11,47 +19,50 @@ main {
   align-items: center;
   justify-content: center;
   height: 100vh;
+  gap: 2rem;
 }
 
 h1 {
-  color: #c0392b;
-  font-size: 4rem;
-  margin-bottom: 2rem;
+  font-size: 3rem;
+  color: #e74c3c;
 }
 
-.input-wrapper {
+.form-container {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 1rem;
+  width: 250px;
 }
 
 input[type="text"],
-input[type="password"] {
-  padding: 0.7rem 1rem;
+input[type="password"],
+button {
+  padding: 0.8rem 1rem;
   font-size: 1rem;
-  border: 2px solid #c0392b;
-  border-radius: 20px;
+  border: 2px solid #e74c3c;
+  border-radius: 25px;
+  background: transparent;
+  color: #e74c3c;
   outline: none;
-  background-color: transparent;
+}
+
+input::placeholder {
+  color: #999;
 }
 
 button {
-  background-color: transparent;
-  border: 2px solid #c0392b;
-  color: #c0392b;
-  font-size: 1.2rem;
-  padding: 0.6rem 1rem;
-  border-radius: 20px;
+  background-color: #e74c3c;
+  color: white;
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
 
 button:hover {
-  background-color: #fbeee0;
+  background-color: #c0392b;
 }
 
 #errorMsg {
-  color: red;
+  color: #ff6b6b;
   margin-top: 1rem;
 }
 
@@ -64,7 +75,7 @@ button:hover {
   top: 20px;
   right: 20px;
   font-size: 1.6rem;
-  color: #c0392b;
+  color: #000000;
   cursor: pointer;
 }
 
@@ -75,9 +86,41 @@ button:hover {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  background-color: #fdf6e3;
+  background-color: linear-gradient(135deg, #2c2c2c, #1a1a1a);
   border: 2px solid #c0392b;
   border-radius: 12px;
   padding: 10px;
   z-index: 10;
+}
+.admin-login hr {
+  margin: 10px 0;
+  border: none;
+  border-top: 1px solid #c0392b;
+}
+.admin-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  gap: 2rem;
+}
+
+.admin-panel {
+  background-color: #2e2e2e;
+  padding: 2rem;
+  border-radius: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 300px;
+}
+
+.generated-code {
+  font-weight: bold;
+  font-size: 1.2rem;
+  color: #7bed9f;
+}
+
+.hidden {
+  display: none;
 }

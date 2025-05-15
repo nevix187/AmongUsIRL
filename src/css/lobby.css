@@ -1,0 +1,64 @@
+body {
+  background: linear-gradient(135deg, #2e2e2e, #1a1a1a);
+  font-family: sans-serif;
+  margin: 0;
+  padding: 0;
+  color: #f1f1f1;
+}
+
+.lobby-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  padding: 2rem;
+}
+
+h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.gamecode-box {
+  font-size: 1.5rem;
+  font-weight: bold;
+  background-color: #444;
+  padding: 1rem 2rem;
+  border-radius: 1rem;
+  color: #f1f1f1;
+}
+
+.player-list {
+  background-color: #2a2a2a;
+  padding: 1rem;
+  border-radius: 1rem;
+  min-width: 300px;
+}
+
+.player-list h2 {
+  margin-top: 0;
+}
+
+.player-list ul {
+  list-style: none;
+  padding-left: 1rem;
+}
+
+button {
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+button:hover {
+  background-color: #2ecc71;
+}
+
+.hidden {
+  display: none;
+}

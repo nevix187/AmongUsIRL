@@ -16,20 +16,29 @@
 
   <!-- Adminbereich (anfangs versteckt) -->
   <div id="adminArea" class="admin-login hidden">
+    <!-- Admin Login -->
     <input type="password" id="adminCode" placeholder="Admin-Code" />
     <button id="adminBtn">Login</button>
+
+    <hr />
+
+    <!-- Gerätecode Eingabe -->
+    <input type="text" id="deviceCodeInput" placeholder="Gerätecode" />
+    <button id="deviceJoinBtn">Beitreten</button>
   </div>
 
-  <main>
-    <h1>Among US IRL</h1>
+<main>
+  <h1>Among US IRL</h1>
 
-    <div class="input-wrapper">
-      <input type="text" id="codeInput" placeholder="Enter code..." />
-      <button id="submitBtn">➜</button>
-    </div>
+  <form id="joinForm" class="form-container">
+    <input type="text" id="playerNameInput" placeholder="Dein Name" />
+    <input type="text" id="codeInput" placeholder="Spielcode (z. B. G-1234)" />
+    <button type="submit" id="submitBtn">Beitreten</button>
+  </form>
 
-    <div id="errorMsg"></div>
-  </main>
+  <div id="errorMsg"></div>
+</main>
+
 
   <script src="/src/js/main.js"></script>
 </body>

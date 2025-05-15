@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin | Among Us IRL</title>
+  <link rel="stylesheet" href="/src/css/style.css" />
+</head>
+<body>
+  <main class="admin-main">
+    <h1>🛠️ Admin-Bereich</h1>
+
+    <section class="admin-panel">
+      <label for="impostorCount">Anzahl Impostors:</label>
+      <select id="impostorCount">
+        <option value="1">1</option>
+        <option value="2">2</option>
+      </select>
+
+      <label for="gameTime">Zeitlimit (Minuten):</label>
+      <input type="number" id="gameTime" min="1" max="99" value="10" />
+
+      <button id="createGameBtn">Spiel erstellen</button>
+
+      <div id="generatedGameCode" class="generated-code hidden">
+        Spielcode: <span id="gameCodeDisplay">G-XXXX</span>
+      </div>
+
+      <button id="startGameBtn">🚀 Spiel starten</button>
+    </section>
+  </main>
+
+  <script src="/src/js/admin.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/src/js/admin.js"></script>
+
+</body>
+</html>

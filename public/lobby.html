@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lobby | Among Us IRL</title>
+  <link rel="stylesheet" href="/src/css/lobby.css" />
+</head>
+<body>
+  <main class="lobby-main">
+    <h1>👥 Lobby</h1>
+
+    <div class="gamecode-box">
+      Spielcode: <span id="lobbyGameCode">G-XXXX</span>
+    </div>
+
+<section class="player-list">
+  <h2>Spieler*innen</h2>
+  <ul id="players">
+    <!-- Dynamisch -->
+  </ul>
+</section>
+
+    <button id="startGameBtn" class="hidden">🚀 Spiel starten</button>
+  </main>
+
+  <script src="/src/js/lobby.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/src/js/lobby.js"></script>
+</body>
+</html>
