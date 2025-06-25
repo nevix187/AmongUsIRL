@@ -1,13 +1,12 @@
 
 import React, { useState } from 'react';
-import { collection, addDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { generateGameCode, generateDeviceCode, generatePlayerId } from '@/utils/gameUtils';
 import { useToast } from '@/hooks/use-toast';
+import { GameStorage } from '@/lib/gameStorage';
 
 interface GameCreationProps {
   onGameCreated: (gameId: string) => void;
@@ -41,14 +40,14 @@ const GameCreation: React.FC<GameCreationProps> = ({ onGameCreated }) => {
         createdAt: Date.now()
       };
 
-      const docRef = await addDoc(collection(db, 'games'), gameData);
+      const gameId = GameStorage.createGame(gameData);
       
       toast({
         title: "Game Created!",
         description: `Game Code: ${gameData.gameCode}, Device Code: ${gameData.deviceCode}`
       });
       
-      onGameCreated(docRef.id);
+      onGameCreated(gameId);
     } catch (error) {
       console.error('Error creating game:', error);
       toast({

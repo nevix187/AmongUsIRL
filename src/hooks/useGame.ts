@@ -1,9 +1,8 @@
 
 import { useState, useEffect } from 'react';
-import { doc, onSnapshot, updateDoc, collection, addDoc, deleteDoc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { Game, Player, Device } from '@/types/game';
 import { assignRoles } from '@/utils/gameUtils';
+import { GameStorage } from '@/lib/gameStorage';
 
 export const useGame = (gameId: string | null) => {
   const [game, setGame] = useState<Game | null>(null);
@@ -16,94 +15,105 @@ export const useGame = (gameId: string | null) => {
       return;
     }
 
-    const gameRef = doc(db, 'games', gameId);
-    
-    const unsubscribe = onSnapshot(
-      gameRef,
-      (doc) => {
-        if (doc.exists()) {
-          setGame({ id: doc.id, ...doc.data() } as Game);
-          setError(null);
-        } else {
-          setError('Game not found');
-          setGame(null);
-        }
-        setLoading(false);
-      },
-      (err) => {
-        console.error('Error fetching game:', err);
-        setError('Failed to load game');
-        setLoading(false);
+    // Initial load
+    const loadGame = () => {
+      const gameData = GameStorage.getGame(gameId);
+      if (gameData) {
+        setGame(gameData);
+        setError(null);
+      } else {
+        setError('Game not found');
+        setGame(null);
       }
-    );
+      setLoading(false);
+    };
 
-    return () => unsubscribe();
+    loadGame();
+
+    // Listen for changes
+    const unsubscribe = GameStorage.addListener((games) => {
+      const gameData = games[gameId];
+      if (gameData) {
+        setGame(gameData);
+        setError(null);
+      } else {
+        setError('Game not found');
+        setGame(null);
+      }
+    });
+
+    return unsubscribe;
   }, [gameId]);
 
   const addPlayer = async (player: Omit<Player, 'id'>) => {
     if (!game) return;
     
-    const gameRef = doc(db, 'games', game.id);
     const newPlayer = { ...player, id: Math.random().toString(36).substr(2, 9) };
-    await updateDoc(gameRef, {
+    const updatedGame = {
+      ...game,
       players: [...game.players, newPlayer]
-    });
+    };
+    GameStorage.saveGame(updatedGame);
   };
 
   const removePlayer = async (playerId: string) => {
     if (!game) return;
     
-    const gameRef = doc(db, 'games', game.id);
-    await updateDoc(gameRef, {
+    const updatedGame = {
+      ...game,
       players: game.players.filter(p => p.id !== playerId)
-    });
+    };
+    GameStorage.saveGame(updatedGame);
   };
 
   const addDevice = async (device: Omit<Device, 'id'>) => {
     if (!game) return;
     
-    const gameRef = doc(db, 'games', game.id);
     const newDevice = { ...device, id: Math.random().toString(36).substr(2, 9) };
-    await updateDoc(gameRef, {
+    const updatedGame = {
+      ...game,
       devices: [...game.devices, newDevice]
-    });
+    };
+    GameStorage.saveGame(updatedGame);
   };
 
   const updateDevice = async (deviceId: string, updates: Partial<Device>) => {
     if (!game) return;
     
-    const gameRef = doc(db, 'games', game.id);
     const updatedDevices = game.devices.map(device => 
       device.id === deviceId ? { ...device, ...updates } : device
     );
-    await updateDoc(gameRef, {
+    const updatedGame = {
+      ...game,
       devices: updatedDevices
-    });
+    };
+    GameStorage.saveGame(updatedGame);
   };
 
   const startGame = async () => {
     if (!game) return;
     
-    const gameRef = doc(db, 'games', game.id);
     const playersWithRoles = assignRoles(game.players, game.impostorCount);
-    
-    await updateDoc(gameRef, {
+    const updatedGame = {
+      ...game,
       players: playersWithRoles,
-      status: 'active',
+      status: 'active' as const,
       startedAt: Date.now()
-    });
+    };
+    GameStorage.saveGame(updatedGame);
   };
 
   const resetGame = async () => {
     if (!game) return;
     
-    const gameRef = doc(db, 'games', game.id);
-    await updateDoc(gameRef, {
+    const updatedGame = {
+      ...game,
       players: [],
       devices: [],
-      status: 'waiting',
-      startedAt: null
-    });
+      status: 'waiting' as const,
+      startedAt: undefined
+    };
+    GameStorage.saveGame(updatedGame);
   };
 
   return {

@@ -1,13 +1,12 @@
 
 import React, { useState } from 'react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { GameStorage } from '@/lib/gameStorage';
 
 interface GameJoinProps {
   onGameJoined: (gameId: string, type: 'player' | 'device') => void;
@@ -19,24 +18,12 @@ const GameJoin: React.FC<GameJoinProps> = ({ onGameJoined }) => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const findGameByCode = async (code: string, codeType: 'gameCode' | 'deviceCode') => {
-    const gamesRef = collection(db, 'games');
-    const q = query(gamesRef, where(codeType, '==', code.toUpperCase()));
-    const querySnapshot = await getDocs(q);
-    
-    if (querySnapshot.empty) {
-      return null;
-    }
-    
-    return querySnapshot.docs[0].id;
-  };
-
   const handleJoinAsPlayer = async () => {
     if (!gameCode.trim()) return;
     
     setLoading(true);
     try {
-      const gameId = await findGameByCode(gameCode.toUpperCase(), 'gameCode');
+      const gameId = GameStorage.findGameByCode(gameCode.toUpperCase(), 'gameCode');
       
       if (!gameId) {
         toast({
@@ -65,7 +52,7 @@ const GameJoin: React.FC<GameJoinProps> = ({ onGameJoined }) => {
     
     setLoading(true);
     try {
-      const gameId = await findGameByCode(deviceCode.toUpperCase(), 'deviceCode');
+      const gameId = GameStorage.findGameByCode(deviceCode.toUpperCase(), 'deviceCode');
       
       if (!gameId) {
         toast({
