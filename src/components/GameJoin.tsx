@@ -5,36 +5,91 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/hooks/use-toast';
 import { GameStorage } from '@/lib/gameStorage';
+import { generatePlayerId } from '@/utils/gameUtils';
+import { useToast } from '@/hooks/use-toast';
 
 interface GameJoinProps {
-  onGameJoined: (gameId: string, type: 'player' | 'device') => void;
+  onGameJoined: (gameId: string, type: 'player' | 'device', playerId?: string) => void;
 }
 
 const GameJoin: React.FC<GameJoinProps> = ({ onGameJoined }) => {
   const [gameCode, setGameCode] = useState('');
   const [deviceCode, setDeviceCode] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [playerName, setPlayerName] = useState('');
+  const [joining, setJoining] = useState(false);
   const { toast } = useToast();
 
-  const handleJoinAsPlayer = async () => {
-    if (!gameCode.trim()) return;
-    
-    setLoading(true);
+  const joinAsPlayer = async () => {
+    if (!gameCode.trim() || !playerName.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter both game code and your name",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setJoining(true);
     try {
-      const gameId = GameStorage.findGameByCode(gameCode.toUpperCase(), 'gameCode');
-      
+      const gameId = GameStorage.findGameByCode(gameCode.trim(), 'gameCode');
       if (!gameId) {
         toast({
           title: "Game Not Found",
-          description: "No game found with this code",
+          description: "Invalid game code. Please check and try again.",
           variant: "destructive"
         });
         return;
       }
+
+      const game = GameStorage.getGame(gameId);
+      if (!game) {
+        toast({
+          title: "Game Not Found",
+          description: "Game no longer exists",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (game.status !== 'waiting') {
+        toast({
+          title: "Game In Progress",
+          description: "Cannot join a game that has already started",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (game.players.some(p => p.name === playerName.trim())) {
+        toast({
+          title: "Name Taken",
+          description: "A player with this name already exists",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const playerId = generatePlayerId();
+      const newPlayer = {
+        id: playerId,
+        name: playerName.trim(),
+        joinedAt: Date.now()
+      };
+
+      const updatedGame = {
+        ...game,
+        players: [...game.players, newPlayer]
+      };
+
+      GameStorage.saveGame(updatedGame);
       
-      onGameJoined(gameId, 'player');
+      toast({
+        title: "Joined Game!",
+        description: `Welcome to the game, ${playerName.trim()}!`
+      });
+      
+      onGameJoined(gameId, 'player', playerId);
     } catch (error) {
       console.error('Error joining game:', error);
       toast({
@@ -43,36 +98,57 @@ const GameJoin: React.FC<GameJoinProps> = ({ onGameJoined }) => {
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      setJoining(false);
     }
   };
 
-  const handleJoinAsDevice = async () => {
-    if (!deviceCode.trim()) return;
-    
-    setLoading(true);
+  const joinAsDevice = async () => {
+    if (!deviceCode.trim()) {
+      toast({
+        title: "Missing Device Code",
+        description: "Please enter the device code",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setJoining(true);
     try {
-      const gameId = GameStorage.findGameByCode(deviceCode.toUpperCase(), 'deviceCode');
-      
+      const gameId = GameStorage.findGameByCode(deviceCode.trim(), 'deviceCode');
       if (!gameId) {
         toast({
-          title: "Game Not Found",
-          description: "No game found with this device code",
+          title: "Invalid Device Code",
+          description: "Device code not found. Please check and try again.",
           variant: "destructive"
         });
         return;
       }
+
+      const game = GameStorage.getGame(gameId);
+      if (!game) {
+        toast({
+          title: "Game Not Found",
+          description: "Game no longer exists",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Device Connected!",
+        description: "You can now configure this device"
+      });
       
       onGameJoined(gameId, 'device');
     } catch (error) {
-      console.error('Error joining game:', error);
+      console.error('Error connecting device:', error);
       toast({
         title: "Error",
         description: "Failed to connect device. Please try again.",
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      setJoining(false);
     }
   };
 
@@ -81,11 +157,11 @@ const GameJoin: React.FC<GameJoinProps> = ({ onGameJoined }) => {
       <CardHeader>
         <CardTitle>Join Game</CardTitle>
         <CardDescription>
-          Enter a code to join as a player or connect a device
+          Join as a player or connect a task device
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="player">
+        <Tabs defaultValue="player" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="player">Player</TabsTrigger>
             <TabsTrigger value="device">Device</TabsTrigger>
@@ -93,21 +169,31 @@ const GameJoin: React.FC<GameJoinProps> = ({ onGameJoined }) => {
           
           <TabsContent value="player" className="space-y-4">
             <div>
+              <Label htmlFor="player-name">Your Name</Label>
+              <Input
+                id="player-name"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                placeholder="Enter your name"
+              />
+            </div>
+            
+            <div>
               <Label htmlFor="game-code">Game Code (S-prefix)</Label>
               <Input
                 id="game-code"
                 value={gameCode}
-                onChange={(e) => setGameCode(e.target.value)}
-                placeholder="Enter game code (e.g., S1234A)"
-                className="mt-1"
+                onChange={(e) => setGameCode(e.target.value.toUpperCase())}
+                placeholder="e.g., S123ABC"
               />
             </div>
+            
             <Button 
-              onClick={handleJoinAsPlayer}
-              disabled={!gameCode.trim() || loading}
+              onClick={joinAsPlayer}
+              disabled={joining || !gameCode.trim() || !playerName.trim()}
               className="w-full"
             >
-              {loading ? 'Joining...' : 'Join as Player'}
+              {joining ? 'Joining...' : 'Join as Player'}
             </Button>
           </TabsContent>
           
@@ -117,17 +203,17 @@ const GameJoin: React.FC<GameJoinProps> = ({ onGameJoined }) => {
               <Input
                 id="device-code"
                 value={deviceCode}
-                onChange={(e) => setDeviceCode(e.target.value)}
-                placeholder="Enter device code (e.g., G5678B)"
-                className="mt-1"
+                onChange={(e) => setDeviceCode(e.target.value.toUpperCase())}
+                placeholder="e.g., G456DEF"
               />
             </div>
+            
             <Button 
-              onClick={handleJoinAsDevice}
-              disabled={!deviceCode.trim() || loading}
+              onClick={joinAsDevice}
+              disabled={joining || !deviceCode.trim()}
               className="w-full"
             >
-              {loading ? 'Connecting...' : 'Connect Device'}
+              {joining ? 'Connecting...' : 'Connect Device'}
             </Button>
           </TabsContent>
         </Tabs>

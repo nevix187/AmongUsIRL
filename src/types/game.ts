@@ -13,12 +13,20 @@ export interface Task {
   createdAt: number;
 }
 
+export interface SabotageEvent {
+  type: string;
+  message: string;
+  timestamp: number;
+  impostorId: string;
+}
+
 export interface Device {
   id: string;
   name: string;
   location: string;
   tasks: Task[];
   connectedAt: number;
+  sabotage?: SabotageEvent;
 }
 
 export interface Game {
