@@ -7,31 +7,40 @@ import GameJoin from '@/components/GameJoin';
 import PlayerLobby from '@/components/PlayerLobby';
 import DeviceManager from '@/components/DeviceManager';
 import GamePlay from '@/components/GamePlay';
-import { GameStorage } from '@/lib/gameStorage';
+import AdminPanel from '@/components/AdminPanel';
+import { EnhancedGameStorage } from '@/lib/enhancedStorage';
+import { Badge } from '@/components/ui/badge';
+import { Shield } from 'lucide-react';
 
-type ViewMode = 'home' | 'create' | 'join' | 'lobby' | 'device' | 'gameplay';
+type ViewMode = 'home' | 'create' | 'join' | 'lobby' | 'device' | 'gameplay' | 'admin';
 
 const Index = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('home');
   const [currentGameId, setCurrentGameId] = useState<string | null>(null);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
-  const [isHost, setIsHost] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Check if there's an active game on mount
   useEffect(() => {
-    const storedGameId = GameStorage.getCurrentGameId();
+    const storedGameId = EnhancedGameStorage.getCurrentGameId();
     const storedPlayerId = localStorage.getItem('current_player_id');
+    const storedIsAdmin = localStorage.getItem('is_admin') === 'true';
     
-    if (storedGameId && storedPlayerId) {
-      const game = GameStorage.getGame(storedGameId);
+    if (storedGameId) {
+      const game = EnhancedGameStorage.getGame(storedGameId);
       if (game) {
         setCurrentGameId(storedGameId);
-        setCurrentPlayerId(storedPlayerId);
+        setIsAdmin(storedIsAdmin);
         
-        if (game.status === 'active') {
-          setViewMode('gameplay');
-        } else {
-          setViewMode('lobby');
+        if (storedIsAdmin) {
+          setViewMode('admin');
+        } else if (storedPlayerId) {
+          setCurrentPlayerId(storedPlayerId);
+          if (game.status === 'active') {
+            setViewMode('gameplay');
+          } else {
+            setViewMode('lobby');
+          }
         }
       }
     }
@@ -41,7 +50,7 @@ const Index = () => {
   useEffect(() => {
     if (!currentGameId) return;
 
-    const unsubscribe = GameStorage.addListener((games) => {
+    const unsubscribe = EnhancedGameStorage.addListener((games) => {
       const game = games[currentGameId];
       if (game && game.status === 'active' && viewMode === 'lobby') {
         setViewMode('gameplay');
@@ -51,16 +60,17 @@ const Index = () => {
     return unsubscribe;
   }, [currentGameId, viewMode]);
 
-  const handleGameCreated = (gameId: string) => {
+  const handleGameCreated = (gameId: string, isAdminUser: boolean) => {
     setCurrentGameId(gameId);
-    setIsHost(true);
-    setViewMode('lobby');
-    GameStorage.setCurrentGameId(gameId);
+    setIsAdmin(isAdminUser);
+    setViewMode(isAdminUser ? 'admin' : 'lobby');
+    EnhancedGameStorage.setCurrentGameId(gameId);
+    localStorage.setItem('is_admin', isAdminUser.toString());
   };
 
   const handleGameJoined = (gameId: string, type: 'player' | 'device', playerId?: string) => {
     setCurrentGameId(gameId);
-    setIsHost(false);
+    setIsAdmin(false);
     
     if (type === 'player' && playerId) {
       setCurrentPlayerId(playerId);
@@ -68,16 +78,18 @@ const Index = () => {
     }
     
     setViewMode(type === 'player' ? 'lobby' : 'device');
-    GameStorage.setCurrentGameId(gameId);
+    EnhancedGameStorage.setCurrentGameId(gameId);
+    localStorage.setItem('is_admin', 'false');
   };
 
   const goHome = () => {
     setViewMode('home');
     setCurrentGameId(null);
     setCurrentPlayerId(null);
-    setIsHost(false);
-    GameStorage.setCurrentGameId(null);
+    setIsAdmin(false);
+    EnhancedGameStorage.setCurrentGameId(null);
     localStorage.removeItem('current_player_id');
+    localStorage.removeItem('is_admin');
   };
 
   if (viewMode === 'home') {
@@ -96,10 +108,11 @@ const Index = () => {
           <div className="space-y-3">
             <Button 
               onClick={() => setViewMode('create')}
-              className="w-full text-lg py-6"
+              className="w-full text-lg py-6 flex items-center gap-2"
               size="lg"
             >
-              Create New Game
+              <Shield className="h-5 w-5" />
+              Create New Game (Admin Only)
             </Button>
             
             <Button 
@@ -117,6 +130,7 @@ const Index = () => {
               <div className="text-sm space-y-2">
                 <p><strong>Game Codes (S-prefix):</strong> For players to join</p>
                 <p><strong>Device Codes (G-prefix):</strong> For task stations</p>
+                <p><strong>Admin Password:</strong> Required to create games</p>
                 <p className="text-muted-foreground">
                   Works entirely offline with localStorage
                 </p>
@@ -154,6 +168,25 @@ const Index = () => {
     );
   }
 
+  if (viewMode === 'admin' && currentGameId) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-500 via-purple-600 to-blue-600 p-4">
+        <div className="max-w-4xl mx-auto space-y-4">
+          <div className="flex items-center justify-between">
+            <Button variant="outline" onClick={goHome} className="mb-4">
+              ← Back to Home
+            </Button>
+            <Badge variant="default" className="flex items-center gap-1">
+              <Shield className="h-3 w-3" />
+              ADMIN
+            </Badge>
+          </div>
+          <AdminPanel gameId={currentGameId} />
+        </div>
+      </div>
+    );
+  }
+
   if (viewMode === 'lobby' && currentGameId) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-500 via-purple-600 to-blue-600 p-4">
@@ -161,7 +194,7 @@ const Index = () => {
           <Button variant="outline" onClick={goHome} className="mb-4">
             ← Back to Home
           </Button>
-          <PlayerLobby gameId={currentGameId} isHost={isHost} />
+          <PlayerLobby gameId={currentGameId} isHost={false} />
         </div>
       </div>
     );

@@ -6,14 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useGame } from '@/hooks/useGame';
 import { useToast } from '@/hooks/use-toast';
-import { Settings, RotateCcw, Users, CheckCircle, AlertTriangle, Play, Square } from 'lucide-react';
+import { Settings, RotateCcw, Users, CheckCircle, AlertTriangle, Play, Square, Shield, UserMinus } from 'lucide-react';
 
 interface AdminPanelProps {
   gameId: string;
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ gameId }) => {
-  const { game, resetGame, endGame } = useGame(gameId);
+  const { game, startGame, resetGame, endGame, removePlayer } = useGame(gameId);
   const { toast } = useToast();
 
   if (!game) return null;
@@ -28,6 +28,25 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ gameId }) => {
   const taskProgress = allTasks.length > 0 ? (completedTasks.length / allTasks.length) * 100 : 0;
 
   const activeSabotages = game.devices.filter(device => device.sabotage?.active);
+
+  const canStartGame = game.players.length >= 3 && game.players.length >= game.impostorCount + 1;
+
+  const handleStartGame = async () => {
+    if (!canStartGame) {
+      toast({
+        title: "Cannot Start Game",
+        description: `Need at least ${game.impostorCount + 1} players to start`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    await startGame();
+    toast({
+      title: "Game Started!",
+      description: "All players have been assigned roles"
+    });
+  };
 
   const handleResetGame = async () => {
     await resetGame();
@@ -45,16 +64,24 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ gameId }) => {
     });
   };
 
+  const handleRemovePlayer = async (playerId: string) => {
+    await removePlayer(playerId);
+    toast({
+      title: "Player Removed",
+      description: "Player has been removed from the game"
+    });
+  };
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            Admin Panel
+            <Shield className="h-5 w-5" />
+            Admin Control Panel
           </CardTitle>
           <CardDescription>
-            Game management and live overview
+            Complete game management and oversight
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -86,24 +113,87 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ gameId }) => {
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            {game.status === 'waiting' && (
+              <Button 
+                onClick={handleStartGame}
+                disabled={!canStartGame}
+                className="flex items-center gap-2"
+              >
+                <Play className="h-4 w-4" />
+                Start Game
+              </Button>
+            )}
+            
             <Button 
               variant="outline" 
               onClick={handleResetGame}
-              className="flex-1"
+              className="flex items-center gap-2"
             >
-              <RotateCcw className="h-4 w-4 mr-2" />
+              <RotateCcw className="h-4 w-4" />
               Reset Game
             </Button>
+            
             {game.status === 'active' && (
               <Button 
                 variant="destructive" 
                 onClick={handleEndGame}
-                className="flex-1"
+                className="flex items-center gap-2"
               >
-                <Square className="h-4 w-4 mr-2" />
+                <Square className="h-4 w-4" />
                 End Game
               </Button>
+            )}
+          </div>
+
+          {!canStartGame && game.status === 'waiting' && (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded">
+              <p className="text-sm text-yellow-800">
+                Need at least {game.impostorCount + 1} players to start the game
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Player Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Player Management
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {game.players.length === 0 ? (
+              <p className="text-muted-foreground">No players have joined yet</p>
+            ) : (
+              game.players.map(player => (
+                <div key={player.id} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                  <div className="flex items-center gap-3">
+                    <span className="font-medium">{player.name}</span>
+                    {game.status === 'active' && (
+                      <>
+                        <Badge variant={player.role === 'impostor' ? 'destructive' : 'default'}>
+                          {player.role}
+                        </Badge>
+                        {player.isAlive === false && (
+                          <Badge variant="outline">DEAD</Badge>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleRemovePlayer(player.id)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <UserMinus className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))
             )}
           </div>
         </CardContent>
@@ -115,8 +205,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ gameId }) => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Live Game Overview
+                <CheckCircle className="h-5 w-5" />
+                Live Game Status
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -131,38 +221,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ gameId }) => {
                 <Progress value={taskProgress} className="w-full" />
               </div>
 
-              {/* Player Status */}
-              <div className="space-y-3">
-                <div>
-                  <h4 className="font-medium text-sm text-green-600 mb-2">
-                    Alive Players ({alivePlayers.length})
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {alivePlayers.map(player => (
-                      <Badge 
-                        key={player.id} 
-                        variant={player.role === 'impostor' ? 'destructive' : 'default'}
-                      >
-                        {player.name} ({player.role})
-                      </Badge>
-                    ))}
-                  </div>
+              {/* Win Conditions */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-blue-50 rounded">
+                  <p className="text-sm font-medium text-blue-700">Crewmates</p>
+                  <p className="text-lg font-bold text-blue-800">{aliveCrewmates.length}</p>
+                  <p className="text-xs text-blue-600">Tasks: {taskProgress.toFixed(0)}%</p>
                 </div>
-
-                {deadPlayers.length > 0 && (
-                  <div>
-                    <h4 className="font-medium text-sm text-red-600 mb-2">
-                      Dead Players ({deadPlayers.length})
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {deadPlayers.map(player => (
-                        <Badge key={player.id} variant="outline" className="opacity-50">
-                          {player.name} ({player.role})
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <div className="p-3 bg-red-50 rounded">
+                  <p className="text-sm font-medium text-red-700">Impostors</p>
+                  <p className="text-lg font-bold text-red-800">{aliveImpostors.length}</p>
+                  <p className="text-xs text-red-600">vs {aliveCrewmates.length} crew</p>
+                </div>
               </div>
 
               {/* Active Sabotages */}
