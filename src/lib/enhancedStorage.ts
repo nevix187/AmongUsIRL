@@ -53,7 +53,9 @@ export class EnhancedGameStorage {
       }
 
       const games = this.getAllGames();
-      games[game.id] = { ...game, lastUpdated: Date.now() };
+      // Update the createdAt timestamp to track last modification
+      const updatedGame = { ...game, createdAt: Date.now() };
+      games[game.id] = updatedGame;
       
       localStorage.setItem(GAMES_KEY, JSON.stringify(games));
       this.notifyListeners(games);
@@ -89,8 +91,7 @@ export class EnhancedGameStorage {
     const gameId = Math.random().toString(36).substr(2, 9);
     const game: Game = { 
       ...gameData, 
-      id: gameId,
-      lastUpdated: Date.now()
+      id: gameId
     };
     this.saveGame(game);
     return gameId;
@@ -172,7 +173,7 @@ export class EnhancedGameStorage {
 
     Object.keys(games).forEach(gameId => {
       const game = games[gameId];
-      const lastActivity = (game as any).lastUpdated || game.createdAt;
+      const lastActivity = game.createdAt;
       
       if (lastActivity < twentyFourHoursAgo && game.status === 'ended') {
         delete games[gameId];
