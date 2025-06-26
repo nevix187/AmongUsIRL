@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { useGame } from '@/hooks/useGame';
 import { GameStorage } from '@/lib/gameStorage';
 import DeadBodyReport from './DeadBodyReport';
-import { CheckCircle, Circle, Skull, List } from 'lucide-react';
+import { CheckCircle, Circle, Skull, List, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface CrewmateViewProps {
@@ -15,11 +14,14 @@ interface CrewmateViewProps {
 }
 
 const CrewmateView: React.FC<CrewmateViewProps> = ({ gameId, playerId }) => {
-  const { game } = useGame(gameId);
+  const { game, callEmergencyMeeting } = useGame(gameId);
   const [showDeadBodyReport, setShowDeadBodyReport] = useState(false);
   const { toast } = useToast();
 
   if (!game) return null;
+
+  const currentPlayer = game.players.find(p => p.id === playerId);
+  const isAlive = currentPlayer?.isAlive !== false;
 
   // Get all tasks from all devices
   const allTasks = game.devices.flatMap(device => 
@@ -33,11 +35,21 @@ const CrewmateView: React.FC<CrewmateViewProps> = ({ gameId, playerId }) => {
   const completedTasks = allTasks.filter(task => task.completed);
   const taskProgress = allTasks.length > 0 ? (completedTasks.length / allTasks.length) * 100 : 0;
 
-  const handleDeadBodyReported = () => {
+  const handleDeadBodyReport = async (reportedPlayerId: string) => {
+    await callEmergencyMeeting(playerId, 'dead_body', reportedPlayerId);
     setShowDeadBodyReport(false);
     toast({
       title: "Dead Body Reported!",
       description: "Emergency meeting has been called.",
+      variant: "destructive"
+    });
+  };
+
+  const handleEmergencyMeeting = async () => {
+    await callEmergencyMeeting(playerId, 'emergency');
+    toast({
+      title: "Emergency Meeting Called!",
+      description: "All players must gather for discussion.",
       variant: "destructive"
     });
   };
@@ -91,7 +103,7 @@ const CrewmateView: React.FC<CrewmateViewProps> = ({ gameId, playerId }) => {
         </CardContent>
       </Card>
 
-      {/* Dead Body Report */}
+      {/* Emergency Actions */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -102,14 +114,24 @@ const CrewmateView: React.FC<CrewmateViewProps> = ({ gameId, playerId }) => {
             Report dead bodies or call emergency meetings
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-2">
           <Button 
             variant="destructive" 
             onClick={() => setShowDeadBodyReport(true)}
             className="w-full"
+            disabled={!isAlive}
           >
             <Skull className="h-4 w-4 mr-2" />
             Report Dead Body
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={handleEmergencyMeeting}
+            className="w-full"
+            disabled={!isAlive}
+          >
+            <AlertTriangle className="h-4 w-4 mr-2" />
+            Call Emergency Meeting
           </Button>
         </CardContent>
       </Card>
@@ -117,7 +139,7 @@ const CrewmateView: React.FC<CrewmateViewProps> = ({ gameId, playerId }) => {
       {showDeadBodyReport && (
         <DeadBodyReport
           gameId={gameId}
-          onReport={handleDeadBodyReported}
+          onReport={handleDeadBodyReport}
           onCancel={() => setShowDeadBodyReport(false)}
         />
       )}

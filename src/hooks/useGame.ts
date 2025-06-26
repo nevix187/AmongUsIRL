@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Game, Player, Device } from '@/types/game';
 import { assignRoles } from '@/utils/gameUtils';
@@ -96,9 +95,14 @@ export const useGame = (gameId: string | null) => {
     const playersWithRoles = assignRoles(game.players, game.impostorCount);
     const updatedGame = {
       ...game,
-      players: playersWithRoles,
+      players: playersWithRoles.map(p => ({ ...p, isAlive: true })),
       status: 'active' as const,
-      startedAt: Date.now()
+      startedAt: Date.now(),
+      settings: {
+        discussionTime: 100,
+        votingTime: 40,
+        maxMeetings: 3
+      }
     };
     GameStorage.saveGame(updatedGame);
   };
@@ -111,7 +115,72 @@ export const useGame = (gameId: string | null) => {
       players: [],
       devices: [],
       status: 'waiting' as const,
-      startedAt: undefined
+      startedAt: undefined,
+      meeting: undefined,
+      result: undefined
+    };
+    GameStorage.saveGame(updatedGame);
+  };
+
+  const endGame = async () => {
+    if (!game) return;
+    
+    const updatedGame = {
+      ...game,
+      status: 'ended' as const,
+      result: {
+        winner: 'crewmates' as const,
+        reason: 'manual_end' as any,
+        endedAt: Date.now()
+      }
+    };
+    GameStorage.saveGame(updatedGame);
+  };
+
+  const callEmergencyMeeting = async (reporterId: string, type: 'emergency' | 'dead_body', reportedPlayerId?: string) => {
+    if (!game) return;
+
+    const meetingId = Math.random().toString(36).substr(2, 9);
+    const now = Date.now();
+    
+    const meeting = {
+      id: meetingId,
+      type,
+      reporterId,
+      reportedPlayerId,
+      discussionEndsAt: now + (game.settings?.discussionTime || 100) * 1000,
+      votingEndsAt: now + (game.settings?.discussionTime || 100) * 1000 + (game.settings?.votingTime || 40) * 1000,
+      votes: [],
+      phase: 'discussion' as const,
+      active: true
+    };
+
+    const updatedGame = {
+      ...game,
+      status: 'meeting' as const,
+      meeting
+    };
+    GameStorage.saveGame(updatedGame);
+  };
+
+  const submitVote = async (meetingId: string, targetId: string) => {
+    if (!game?.meeting || game.meeting.id !== meetingId) return;
+
+    const vote = {
+      playerId: game.meeting.reporterId, // This should be the current player
+      targetId,
+      timestamp: Date.now()
+    };
+
+    const updatedVotes = [...game.meeting.votes, vote];
+    const updatedMeeting = {
+      ...game.meeting,
+      votes: updatedVotes
+    };
+
+    const updatedGame = {
+      ...game,
+      meeting: updatedMeeting
     };
     GameStorage.saveGame(updatedGame);
   };
@@ -125,6 +194,9 @@ export const useGame = (gameId: string | null) => {
     addDevice,
     updateDevice,
     startGame,
-    resetGame
+    resetGame,
+    endGame,
+    callEmergencyMeeting,
+    submitVote
   };
 };
