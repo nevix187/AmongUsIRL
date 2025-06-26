@@ -37,7 +37,12 @@ const GameCreation: React.FC<GameCreationProps> = ({ onGameCreated }) => {
         players: [],
         devices: [],
         status: 'waiting' as const,
-        createdAt: Date.now()
+        createdAt: Date.now(),
+        settings: {
+          discussionTime: 100,
+          votingTime: 40,
+          maxMeetings: 3
+        }
       };
 
       const gameId = GameStorage.createGame(gameData);

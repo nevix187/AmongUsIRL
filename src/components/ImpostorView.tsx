@@ -25,7 +25,8 @@ const ImpostorView: React.FC<ImpostorViewProps> = ({ gameId, playerId }) => {
       type,
       message,
       timestamp: Date.now(),
-      impostorId: playerId
+      impostorId: playerId,
+      active: true
     };
 
     // Update all devices with sabotage notification
